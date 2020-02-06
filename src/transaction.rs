@@ -75,7 +75,7 @@ mod tests {
         let value: u64 = rng.gen();
         let tx_out = TxOut { value: value, script_pubkey: pub_key };
 
-        let script_sig: String = (0..RIPEMD160_LEN)
+        let script_sig: String = (0..SCRIPTSIG_LEN)
             .map(|_| {
                 let idx = rng.gen_range(0, CHARSET.len());
                 CHARSET[idx] as char
@@ -83,8 +83,8 @@ mod tests {
             .collect();
         let tx_in = TxIn { previous_output: out_point, script_sig: script_sig };
 
-        let mut inputs = vec![tx_in];
-        let mut outputs = vec![tx_out];
+        let inputs = vec![tx_in];
+        let outputs = vec![tx_out];
         let tx = Transaction{ input: inputs, output: outputs };
         return tx;
     }

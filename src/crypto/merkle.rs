@@ -1,29 +1,120 @@
 use super::hash::{Hashable, H256};
+use ring::digest;
 
 /// A Merkle tree.
 #[derive(Debug, Default)]
 pub struct MerkleTree {
+    tree: Vec<H256>,
+    leaf_num: usize,
+}
+
+fn findHeight(in_size: usize) -> u32 {
+    let mut height = 0;
+    let mut cur = 1;
+    while in_size > cur {
+        height += 1;
+        cur *= 2;
+    }
+    return height;
 }
 
 impl MerkleTree {
     pub fn new<T>(data: &[T]) -> Self where T: Hashable, {
-        unimplemented!()
+        let mut input_len = data.len();
+        let mut tree = Vec::new();
+        for i in 0..input_len {
+            let hash = data[i].hash();
+            tree.push(hash);
+        }
+        if input_len % 2 == 1 && input_len != 1 {
+            tree.push(tree[tree.len()-1]);
+            input_len += 1;
+        }
+        let mut start = 0;
+        let mut cur_len = input_len;
+        while cur_len > 1 {
+            let half = cur_len/2;
+            for i in 0..half {
+                let mut ctx = digest::Context::new(&digest::SHA256);
+                ctx.update(tree[start+2*i].as_ref());
+                ctx.update(tree[start+2*i+1].as_ref());
+                tree.push(ctx.finish().into());
+            }
+            if data.len() % 2 == 1 {
+                tree.push(tree[tree.len()-1]);
+            }
+            start += cur_len;
+            cur_len /= 2;
+            if cur_len % 2 == 1 && cur_len != 1 {
+                cur_len += 1;
+            }
+        }
+        MerkleTree { tree: tree, leaf_num: input_len }
     }
 
     pub fn root(&self) -> H256 {
-        unimplemented!()
+        return self.tree[self.tree.len()-1];
     }
 
     /// Returns the Merkle Proof of data at index i
     pub fn proof(&self, index: usize) -> Vec<H256> {
-        unimplemented!()
+        let mut proof = Vec::new();
+        if index >= self.leaf_num {
+            return proof;
+        }
+        let height = findHeight(self.leaf_num);
+        let mut cur_index = index;
+        let mut sequence = 0;
+        for i in 0..height {
+            // println!("{:?}", cur_index);
+            let group = (cur_index - sequence)/2;
+            if cur_index % 2 == 1 {
+                proof.push(self.tree[cur_index-1]);
+            }
+            else {
+                proof.push(self.tree[cur_index+1]);
+            }
+            if i == 0 {
+                sequence += self.leaf_num;
+            }
+            else {
+                sequence += 2usize.pow(height - i);
+            }
+            cur_index = sequence + group;
+        }
+        return proof;
     }
 }
 
 /// Verify that the datum hash with a vector of proofs will produce the Merkle root. Also need the
 /// index of datum and `leaf_size`, the total number of leaves.
 pub fn verify(root: &H256, datum: &H256, proof: &[H256], index: usize, leaf_size: usize) -> bool {
-    unimplemented!()
+    let height = proof.len();
+    let leaf_num = 2usize.pow(height as u32) - (2usize.pow(height as u32+1) - 1 - leaf_size);
+    let mut cur_index = index;
+    let mut sequence = 0;
+    let mut ctx = digest::Context::new(&digest::SHA256);
+    let mut trace = datum.clone();
+    for i in 0..height {
+        let group = (cur_index - sequence)/2;
+        if cur_index % 2 == 1 {
+            ctx.update(proof[i].as_ref());
+            ctx.update(trace.as_ref());
+        }
+        else {
+            ctx.update(trace.as_ref());
+            ctx.update(proof[i].as_ref());
+        }
+        if i == 0 {
+            sequence += leaf_num;
+        }
+        else {
+            sequence += 2usize.pow(height as u32 - i as u32);
+        }
+        cur_index = sequence + group;
+        trace = ctx.clone().finish().into();
+    }
+    return trace == *root;
 }
 
 #[cfg(test)]
