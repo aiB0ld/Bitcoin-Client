@@ -2,26 +2,34 @@ extern crate rand;
 use serde::{Serialize,Deserialize};
 use ring::digest;
 use ring::signature::{self, Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters};
+use crate::crypto::hash::{H256, Hashable};
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Transaction {
     pub input: Vec<TxIn>,
     pub output: Vec<TxOut>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+impl Hashable for Transaction {
+    fn hash(&self) -> H256 {
+        let m = bincode::serialize(&self).unwrap();
+        digest::digest(&digest::SHA256, m.as_ref()).into()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct TxIn {
     pub previous_output: OutPoint,
     pub script_sig: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct OutPoint {
     pub txid: String,
     pub index: u8,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct TxOut {
     pub value: u64,
     pub script_pubkey: String,

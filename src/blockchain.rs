@@ -1,29 +1,66 @@
-use crate::block::Block;
-use crate::crypto::hash::H256;
+use crate::block::{Block, Header, Content};
+use crate::crypto::hash::{H256, Hashable};
+use std::collections::HashMap;
+use super::transaction::Transaction;
+use crate::crypto::merkle::MerkleTree;
 
 pub struct Blockchain {
+    blockmap: HashMap<H256, Block>,
+    lengthmap: HashMap<H256, usize>,
+    tip: H256,
 }
 
 impl Blockchain {
     /// Create a new blockchain, only containing the genesis block
     pub fn new() -> Self {
-        unimplemented!()
+        let parent: H256 = [0u8; 32].into();
+        let nonce = 0u32;
+        let difficulty: H256 = [0u8; 32].into();
+        let timestamp = 0u64;
+        let transactions = Vec::new();
+        let empty_tree = MerkleTree::new(&transactions);
+        let merkle_root = empty_tree.root();
+        let header = Header{ parent: parent, nonce: nonce, difficulty: difficulty, timestamp: timestamp, merkle_root: merkle_root };
+        let content = Content{ data: transactions };
+        let genesis = Block{ header: header, content: content };
+        let mut blockmap = HashMap::new();
+        let mut lengthmap = HashMap::new();
+        let genesis_hash: H256 = genesis.hash();
+        blockmap.insert(genesis_hash, genesis);
+        lengthmap.insert(genesis_hash, 0);
+        let tip = genesis_hash;
+        Blockchain { blockmap: blockmap, lengthmap: lengthmap, tip: tip }
     }
 
     /// Insert a block into blockchain
     pub fn insert(&mut self, block: &Block) {
-        unimplemented!()
+        let prev = block.header.parent;
+        let tip = self.tip;
+        let block_hash: H256 = block.hash();
+        self.blockmap.insert(block_hash, block.clone());
+        self.lengthmap.insert(block_hash, self.lengthmap[&prev] + 1);
+        if self.lengthmap[&tip] < self.lengthmap[&block_hash] {
+            self.tip = block_hash;
+        }
     }
 
     /// Get the last block's hash of the longest chain
     pub fn tip(&self) -> H256 {
-        unimplemented!()
+        return self.tip;
     }
 
     /// Get the last block's hash of the longest chain
     #[cfg(any(test, test_utilities))]
     pub fn all_blocks_in_longest_chain(&self) -> Vec<H256> {
-        unimplemented!()
+        let mut trav = self.tip;
+        let mut longest_chain = Vec::new();
+        let target = [0u8; 32].into();
+        while trav != target {
+            longest_chain.push(trav);
+            let cur_b = &self.blockmap[&trav];
+            trav = cur_b.header.parent;
+        }
+        return longest_chain;
     }
 }
 

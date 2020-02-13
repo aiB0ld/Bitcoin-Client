@@ -22,6 +22,11 @@ impl MerkleTree {
     pub fn new<T>(data: &[T]) -> Self where T: Hashable, {
         let mut input_len = data.len();
         let mut tree = Vec::new();
+        if input_len == 0 {
+            let bytes32 = [0u8; 32];
+            tree.push(bytes32.into());
+            return MerkleTree{ tree: tree, leaf_num: 0 };
+        }
         for i in 0..input_len {
             let hash = data[i].hash();
             tree.push(hash);
