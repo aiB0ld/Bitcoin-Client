@@ -1,4 +1,7 @@
 use crate::network::server::Handle as ServerHandle;
+use crate::blockchain::Blockchain;
+use crate::crypto::merkle::MerkleTree;
+use crate::block::{Block, Header, Content};
 
 use log::info;
 
@@ -6,6 +9,9 @@ use crossbeam::channel::{unbounded, Receiver, Sender, TryRecvError};
 use std::time;
 
 use std::thread;
+use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
+use crate::crypto::hash::{H256, Hashable};
 
 enum ControlSignal {
     Start(u64), // the number controls the lambda of interval between block generation
@@ -23,6 +29,7 @@ pub struct Context {
     control_chan: Receiver<ControlSignal>,
     operating_state: OperatingState,
     server: ServerHandle,
+    chain: Arc<Mutex<Blockchain>>,
 }
 
 #[derive(Clone)]
@@ -32,7 +39,7 @@ pub struct Handle {
 }
 
 pub fn new(
-    server: &ServerHandle,
+    server: &ServerHandle, blockchain: &Arc<Mutex<Blockchain>>,
 ) -> (Context, Handle) {
     let (signal_chan_sender, signal_chan_receiver) = unbounded();
 
@@ -40,6 +47,7 @@ pub fn new(
         control_chan: signal_chan_receiver,
         operating_state: OperatingState::Paused,
         server: server.clone(),
+        chain: Arc::clone(blockchain),
     };
 
     let handle = Handle {
@@ -88,6 +96,8 @@ impl Context {
 
     fn miner_loop(&mut self) {
         // main mining loop
+        let mut num_blocks = 0;
+        let start_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
         loop {
             // check and react to control signals
             match self.operating_state {
@@ -112,6 +122,31 @@ impl Context {
             }
 
             // TODO: actual mining
+            use rand::Rng;
+            let mut rng = rand::thread_rng();
+            let mut chain_un = self.chain.lock().unwrap();
+            let parent = chain_un.tip();
+            let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+            let difficulty = chain_un.blockmap[&parent].header.difficulty;
+            let transactions = Vec::new();
+            let empty_tree = MerkleTree::new(&transactions);
+            let merkle_root = empty_tree.root();
+            let nonce = rng.gen();
+            let header = Header{ parent: parent, nonce: nonce, difficulty: difficulty, timestamp: timestamp, merkle_root: merkle_root };
+            let content = Content{ data: transactions };
+            let cur_block = Block{ header: header, content: content };
+
+            if cur_block.hash() <= difficulty {
+                chain_un.insert(&cur_block);
+                num_blocks += 1;
+                println!("{:?}", num_blocks);
+            }
+
+            let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
+            if cur_time - start_time > 300 {
+                println!("{:?} blocks mined in {:?} seconds", num_blocks, cur_time - start_time);
+                break;
+            }
 
             if let OperatingState::Run(i) = self.operating_state {
                 if i != 0 {

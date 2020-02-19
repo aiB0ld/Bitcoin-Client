@@ -5,8 +5,8 @@ use super::transaction::Transaction;
 use crate::crypto::merkle::MerkleTree;
 
 pub struct Blockchain {
-    blockmap: HashMap<H256, Block>,
-    lengthmap: HashMap<H256, usize>,
+    pub blockmap: HashMap<H256, Block>,
+    pub lengthmap: HashMap<H256, usize>,
     tip: H256,
 }
 
@@ -15,8 +15,10 @@ impl Blockchain {
     pub fn new() -> Self {
         let parent: H256 = [0u8; 32].into();
         let nonce = 0u32;
-        let difficulty: H256 = [0u8; 32].into();
-        let timestamp = 0u64;
+        let mut bytes32 = [255u8; 32];
+        bytes32[0] = 0;
+        let difficulty: H256 = bytes32.into();
+        let timestamp = 0u128;
         let transactions = Vec::new();
         let empty_tree = MerkleTree::new(&transactions);
         let merkle_root = empty_tree.root();

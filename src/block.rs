@@ -8,7 +8,7 @@ pub struct Header {
 	pub parent: H256,
 	pub nonce: u32,
 	pub difficulty: H256,
-	pub timestamp: u64,
+	pub timestamp: u128,
 	pub merkle_root: H256,
 }
 
@@ -46,7 +46,7 @@ pub mod test {
         let mut rng = rand::thread_rng();
         let nonce: u32 = rng.gen();
         let transactions = Vec::new();
-        let timestamp: u64 = rng.gen_range(1581553864, 1582553864);
+        let timestamp: u128 = rng.gen_range(1581553864000, 1582553864000);
         let mut bytes32 = [255u8; 32];
         bytes32[0] = 0;
         bytes32[1] = 0;
