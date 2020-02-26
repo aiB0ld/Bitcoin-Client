@@ -58,12 +58,13 @@ impl Context {
                 }
                 Message::NewBlockHashes(blockhashes) => {
                     let mut unknown = Vec::new();
-                    for hash in blockhashes {
+                    for hash in blockhashes.clone() {
                         if !self.chain.lock().unwrap().blockmap.contains_key(&hash) {
                             unknown.push(hash);
                         }
                     }
                     peer.write(Message::GetBlocks(unknown));
+                    self.server.broadcast(Message::NewBlockHashes(blockhashes));
                 }
                 Message::GetBlocks(blockhashes) => {
                     let mut valid_blocks = Vec::new();
