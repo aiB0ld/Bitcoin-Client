@@ -12,6 +12,7 @@ use std::thread;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::crypto::hash::{H256, Hashable};
+use crate::network::message::Message;
 
 enum ControlSignal {
     Start(u64), // the number controls the lambda of interval between block generation
@@ -140,6 +141,9 @@ impl Context {
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
                 println!("{:?}", num_blocks);
+                let mut blockhashes = Vec::new();
+                blockhashes.push(cur_block.hash());
+                self.server.broadcast(Message::NewBlockHashes(blockhashes));
             }
 
             let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
