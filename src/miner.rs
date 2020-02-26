@@ -3,7 +3,7 @@ use crate::blockchain::Blockchain;
 use crate::crypto::merkle::MerkleTree;
 use crate::block::{Block, Header, Content};
 
-use log::info;
+use log::{info, debug, warn};
 
 use crossbeam::channel::{unbounded, Receiver, Sender, TryRecvError};
 use std::time;
