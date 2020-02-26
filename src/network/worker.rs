@@ -62,7 +62,7 @@ impl Context {
                     let mut unknown = Vec::new();
                     let mut chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes {
-                        if !chain_un.blockmap.contains_key(hash) {
+                        if !chain_un.blockmap.contains_key(&hash) {
                             unknown.push(hash);
                         }
                     }
@@ -72,7 +72,7 @@ impl Context {
                     let mut valid_blocks = Vec::new();
                     let mut chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes {
-                        if chain_un.blockmap.contains_key(hash) {
+                        if chain_un.blockmap.contains_key(&hash) {
                             let block = chain_un.blockmap[&hash];
                             valid_blocks.push(block);
                         }
@@ -83,7 +83,7 @@ impl Context {
                     let mut chain_un = self.chain.lock().unwrap();
                     for block in blocks {
                         let hash: H256 = block.hash();
-                        if !chain_un.blockmap.contains_key(hash) {
+                        if !chain_un.blockmap.contains_key(&hash) {
                             chain_un.insert(&block);
                         }
                     }
