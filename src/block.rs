@@ -1,7 +1,6 @@
 use serde::{Serialize, Deserialize};
 use crate::crypto::hash::{H256, Hashable};
 use super::transaction::Transaction;
-use crate::crypto::merkle::MerkleTree;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Header {

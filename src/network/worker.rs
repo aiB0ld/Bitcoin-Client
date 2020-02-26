@@ -4,8 +4,6 @@ use crate::network::server::Handle as ServerHandle;
 use crossbeam::channel;
 use log::{debug, warn};
 use crate::blockchain::Blockchain;
-use crate::crypto::merkle::MerkleTree;
-use crate::block::{Block, Header, Content};
 use crate::crypto::hash::{H256, Hashable};
 
 use std::thread;
@@ -60,10 +58,8 @@ impl Context {
                 }
                 Message::NewBlockHashes(blockhashes) => {
                     let mut unknown = Vec::new();
-                    let chain = self.chain.clone();
-                    let chain_un = chain.lock().unwrap();
                     for hash in blockhashes {
-                        if !chain_un.blockmap.contains_key(&hash) {
+                        if !self.chain.lock().unwrap().blockmap.contains_key(&hash) {
                             unknown.push(hash);
                         }
                     }
@@ -71,21 +67,19 @@ impl Context {
                 }
                 Message::GetBlocks(blockhashes) => {
                     let mut valid_blocks = Vec::new();
-                    let mut chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes {
-                        if chain_un.blockmap.contains_key(&hash) {
-                            let block = chain_un.blockmap[&hash].clone();
+                        if self.chain.lock().unwrap().blockmap.contains_key(&hash) {
+                            let block = self.chain.lock().unwrap().blockmap[&hash].clone();
                             valid_blocks.push(block);
                         }
                     }
                     peer.write(Message::Blocks(valid_blocks));
                 }
                 Message::Blocks(blocks) => {
-                    let mut chain_un = self.chain.lock().unwrap();
                     for block in blocks {
                         let hash: H256 = block.hash();
-                        if !chain_un.blockmap.contains_key(&hash) {
-                            chain_un.insert(&block);
+                        if !self.chain.lock().unwrap().blockmap.contains_key(&hash) {
+                            self.chain.lock().unwrap().insert(&block);
                         }
                     }
                 }

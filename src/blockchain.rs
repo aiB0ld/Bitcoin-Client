@@ -1,7 +1,6 @@
 use crate::block::{Block, Header, Content};
 use crate::crypto::hash::{H256, Hashable};
 use std::collections::HashMap;
-use super::transaction::Transaction;
 use crate::crypto::merkle::MerkleTree;
 
 pub struct Blockchain {
