@@ -140,7 +140,7 @@ impl Context {
             if cur_block.hash() <= difficulty {
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
-                info!("{:?}", num_blocks);
+                info!("{:?} blocks mined, the length of the block chain is {:?}", num_blocks, chain_un.blockmap.len());
                 let mut blockhashes = Vec::new();
                 blockhashes.push(cur_block.hash());
                 self.server.broadcast(Message::NewBlockHashes(blockhashes));
