@@ -140,7 +140,7 @@ impl Context {
             if cur_block.hash() <= difficulty {
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
-                debug!("{:?}", num_blocks);
+                info!("{:?}", num_blocks);
                 let mut blockhashes = Vec::new();
                 blockhashes.push(cur_block.hash());
                 self.server.broadcast(Message::NewBlockHashes(blockhashes));
@@ -148,7 +148,7 @@ impl Context {
 
             let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
             if cur_time - start_time > 300 {
-                debug!("{:?} blocks mined in {:?} seconds", num_blocks, cur_time - start_time);
+                info!("{:?} blocks mined in {:?} seconds", num_blocks, cur_time - start_time);
                 break;
             }
 
