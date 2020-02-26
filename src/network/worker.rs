@@ -60,7 +60,8 @@ impl Context {
                 }
                 Message::NewBlockHashes(blockhashes) => {
                     let mut unknown = Vec::new();
-                    let mut chain_un = self.chain.lock().unwrap();
+                    let chain = self.chain.clone();
+                    let chain_un = chain.lock().unwrap();
                     for hash in blockhashes {
                         if !chain_un.blockmap.contains_key(&hash) {
                             unknown.push(hash);
