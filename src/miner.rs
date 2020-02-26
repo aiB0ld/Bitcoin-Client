@@ -144,7 +144,7 @@ impl Context {
                 let mut blockhashes = Vec::new();
                 blockhashes.push(cur_block.hash());
                 self.server.broadcast(Message::NewBlockHashes(blockhashes));
-                info!("{:?}", chain_un.blockmap);
+                info!("The longest chain is {:?}", chain_un.all_blocks_in_longest_chain());
             }
 
             let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
