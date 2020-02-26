@@ -6,6 +6,7 @@ use log::{debug, warn};
 use crate::blockchain::Blockchain;
 use crate::crypto::merkle::MerkleTree;
 use crate::block::{Block, Header, Content};
+use crate::crypto::hash::{H256, Hashable};
 
 use std::thread;
 use std::sync::{Arc, Mutex};

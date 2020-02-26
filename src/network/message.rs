@@ -1,4 +1,6 @@
 use serde::{Serialize, Deserialize};
+use crate::block::{Block, Header, Content};
+use crate::crypto::hash::{H256, Hashable};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Message {
