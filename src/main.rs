@@ -82,7 +82,7 @@ fn main() {
         p2p_workers,
         msg_rx,
         &server,
-        Arc::clone(&the_chain),
+        &chain_lock,
     );
     worker_ctx.start();
 
