@@ -73,7 +73,7 @@ impl Context {
                     let mut chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes {
                         if chain_un.blockmap.contains_key(&hash) {
-                            let block = chain_un.blockmap[&hash];
+                            let block = chain_un.blockmap[&hash].clone();
                             valid_blocks.push(block);
                         }
                     }
