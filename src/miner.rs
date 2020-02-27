@@ -98,6 +98,7 @@ impl Context {
     fn miner_loop(&mut self) {
         // main mining loop
         let mut num_blocks = 0;
+        let mut cnt = 0;
         let start_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
         loop {
             // check and react to control signals
@@ -136,6 +137,10 @@ impl Context {
             let header = Header{ parent: parent, nonce: nonce, difficulty: difficulty, timestamp: timestamp, merkle_root: merkle_root };
             let content = Content{ data: transactions };
             let cur_block = Block{ header: header, content: content };
+            cnt += 1;
+            if cnt % 200000 == 0 {
+                println!("time: {:?}, tip: {:?}", timestamp, chain_un.tip());
+            }
 
             if cur_block.hash() <= difficulty {
                 println!("time: {:?}, tip: {:?}", timestamp, chain_un.tip());
