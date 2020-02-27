@@ -136,8 +136,9 @@ impl Context {
             let header = Header{ parent: parent, nonce: nonce, difficulty: difficulty, timestamp: timestamp, merkle_root: merkle_root };
             let content = Content{ data: transactions };
             let cur_block = Block{ header: header, content: content };
+            println!("time: {:?}, tip: {:?}", timestamp, self.chain.lock().unwrap().tip());
 
-            if cur_block.hash() <= difficulty && parent == chain_un.tip() {
+            if cur_block.hash() <= difficulty && parent == self.chain.lock().unwrap().tip() {
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
                 info!("{:?} blocks mined, the length of the block chain is {:?}", num_blocks, chain_un.blockmap.len());
