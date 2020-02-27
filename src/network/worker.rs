@@ -57,6 +57,7 @@ impl Context {
                     debug!("Pong: {}", nonce);
                 }
                 Message::NewBlockHashes(blockhashes) => {
+                    println!("Received NewBlockHashes");
                     let mut unknown = Vec::new();
                     let mut chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes.clone() {
@@ -68,6 +69,7 @@ impl Context {
                     self.server.broadcast(Message::NewBlockHashes(blockhashes));
                 }
                 Message::GetBlocks(blockhashes) => {
+                    println!("Received GetBlocks");
                     let mut valid_blocks = Vec::new();
                     let mut chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes {
@@ -79,6 +81,7 @@ impl Context {
                     peer.write(Message::Blocks(valid_blocks));
                 }
                 Message::Blocks(blocks) => {
+                    println!("Received Blocks");
                     let mut chain_un = self.chain.lock().unwrap();
                     for block in blocks {
                         let hash: H256 = block.hash();
