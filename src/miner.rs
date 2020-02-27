@@ -137,7 +137,7 @@ impl Context {
             let content = Content{ data: transactions };
             let cur_block = Block{ header: header, content: content };
 
-            if cur_block.hash() <= difficulty {
+            if cur_block.hash() <= difficulty && parent == chain_un.tip() {
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
                 info!("{:?} blocks mined, the length of the block chain is {:?}", num_blocks, chain_un.blockmap.len());
@@ -147,11 +147,11 @@ impl Context {
                 info!("The longest chain is {:?}", chain_un.all_blocks_in_longest_chain());
             }
 
-            let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
-            if cur_time - start_time > 300 {
-                info!("{:?} blocks mined in {:?} seconds", num_blocks, cur_time - start_time);
-                break;
-            }
+            // let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
+            // if cur_time - start_time > 300 {
+            //     info!("{:?} blocks mined in {:?} seconds", num_blocks, cur_time - start_time);
+            //     break;
+            // }
 
             if let OperatingState::Run(i) = self.operating_state {
                 if i != 0 {
