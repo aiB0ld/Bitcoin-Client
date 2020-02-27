@@ -15,7 +15,7 @@ impl Blockchain {
         let parent: H256 = [0u8; 32].into();
         let nonce = 0u32;
         let mut bytes32 = [255u8; 32];
-        bytes32[0] = 0;
+        // bytes32[0] = 0;
         // bytes32[1] = 0;
         let difficulty: H256 = bytes32.into();
         let timestamp = 0u128;
