@@ -152,11 +152,11 @@ impl Context {
                 info!("The longest chain is {:?}", chain_un.all_blocks_in_longest_chain());
             }
 
-            // let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
-            // if cur_time - start_time > 300 {
-            //     info!("{:?} blocks mined in {:?} seconds", num_blocks, cur_time - start_time);
-            //     break;
-            // }
+            let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
+            if cur_time - start_time > 300 {
+                info!("{:?} blocks mined in {:?} seconds", num_blocks, 300);
+                break;
+            }
 
             if let OperatingState::Run(i) = self.operating_state {
                 if i != 0 {
