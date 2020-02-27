@@ -139,11 +139,10 @@ impl Context {
             let cur_block = Block{ header: header, content: content };
             cnt += 1;
             if cnt % 200000 == 0 {
-                println!("time: {:?}, tip: {:?}", timestamp, chain_un.tip());
+                println!("time: {:?}, tip: {:?}, blocksnum: {:?}", timestamp, chain_un.tip(), chain_un.blockmap.len());
             }
 
             if cur_block.hash() <= difficulty {
-                println!("time: {:?}, tip: {:?}", timestamp, chain_un.tip());
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
                 info!("{:?} blocks mined", num_blocks);
