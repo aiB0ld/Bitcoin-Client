@@ -138,7 +138,8 @@ impl Context {
             let cur_block = Block{ header: header, content: content };
             // println!("time: {:?}, tip: {:?}", timestamp, self.chain.lock().unwrap().tip());
 
-            if cur_block.hash() <= difficulty && parent == self.chain.lock().unwrap().tip() {
+            if cur_block.hash() <= difficulty {
+                debug!("{:?}, {:?}", parent, self.chain.lock().unwrap().tip());
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
                 info!("{:?} blocks mined, the length of the block chain is {:?}", num_blocks, chain_un.blockmap.len());
