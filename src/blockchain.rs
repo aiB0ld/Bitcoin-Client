@@ -37,11 +37,10 @@ impl Blockchain {
     /// Insert a block into blockchain
     pub fn insert(&mut self, block: &Block) {
         let prev = block.header.parent;
-        let tip = self.tip;
         let block_hash: H256 = block.hash();
         self.blockmap.insert(block_hash, block.clone());
         self.lengthmap.insert(block_hash, self.lengthmap[&prev] + 1);
-        if self.lengthmap[&tip] < self.lengthmap[&block_hash] {
+        if self.lengthmap[&self.tip] < self.lengthmap[&block_hash] {
             self.tip = block_hash;
         }
     }
