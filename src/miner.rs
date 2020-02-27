@@ -141,7 +141,7 @@ impl Context {
                 println!("time: {:?}, tip: {:?}", timestamp, chain_un.tip());
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
-                info!("{:?} blocks mined, the length of the block chain is {:?}", num_blocks, chain_un.blockmap.len());
+                info!("{:?} blocks mined", num_blocks);
                 let mut blockhashes = Vec::new();
                 blockhashes.push(cur_block.hash());
                 self.server.broadcast(Message::NewBlockHashes(blockhashes));
