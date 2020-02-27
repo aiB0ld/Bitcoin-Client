@@ -63,10 +63,10 @@ impl Context {
                     for hash in blockhashes.clone() {
                         if !chain_un.blockmap.contains_key(&hash) {
                             unknown.push(hash);
+                            self.server.broadcast(Message::NewBlockHashes(vec![hash]));
                         }
                     }
                     peer.write(Message::GetBlocks(unknown));
-                    self.server.broadcast(Message::NewBlockHashes(blockhashes));
                 }
                 Message::GetBlocks(blockhashes) => {
                     println!("Received GetBlocks");
