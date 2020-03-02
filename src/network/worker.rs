@@ -72,7 +72,7 @@ impl Context {
                     for hash in blockhashes.clone() {
                         if !chain_un.blockmap.contains_key(&hash) {
                             unknown.push(hash);
-                            self.server.broadcast(Message::NewBlockHashes(vec![hash]));
+                            // self.server.broadcast(Message::NewBlockHashes(vec![hash]));
                         }
                     }
                     peer.write(Message::GetBlocks(unknown));
@@ -102,11 +102,13 @@ impl Context {
                             else if hash <= block.header.difficulty && block.header.difficulty == chain_un.blockmap[&block.header.parent].header.difficulty {
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
+                                self.server.broadcast(Message::NewBlockHashes(vec![hash]));
                                 while true {
                                     if self.orphan_buffer.contains_key(&hash) {
                                         let orphan_block = self.orphan_buffer.remove(&hash).unwrap();
                                         chain_un.insert(&orphan_block);
                                         new_blocks.push(orphan_block.hash());
+                                        self.server.broadcast(Message::NewBlockHashes(vec![orphan_block.hash()]));
                                         hash = orphan_block.hash();
                                     }
                                     else {
@@ -116,7 +118,6 @@ impl Context {
                             }
                         }
                     }
-                    self.server.broadcast(Message::NewBlockHashes(new_blocks));
                 }
             }
         }
