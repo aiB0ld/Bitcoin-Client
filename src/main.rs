@@ -79,13 +79,14 @@ fn main() {
     let the_chain = blockchain::Blockchain::new();
     let chain_lock = Arc::new(Mutex::new(the_chain));
     let buffer = HashMap::new();
+    let buffer_lock = Arc::new(Mutex::new(buffer));
 
     let worker_ctx = worker::new(
         p2p_workers,
         msg_rx,
         &server,
         &chain_lock,
-        buffer,
+        &buffer_lock,
     );
     worker_ctx.start();
 

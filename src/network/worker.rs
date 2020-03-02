@@ -21,7 +21,7 @@ pub struct Context {
     num_worker: usize,
     server: ServerHandle,
     chain: Arc<Mutex<Blockchain>>,
-    orphan_buffer: HashMap<H256, Block>,
+    orphan_buffer: Arc<Mutex<HashMap<H256, Block>>>,
 }
 
 pub fn new(
@@ -29,14 +29,14 @@ pub fn new(
     msg_src: channel::Receiver<(Vec<u8>, peer::Handle)>,
     server: &ServerHandle,
     chain: &Arc<Mutex<Blockchain>>,
-    orphan_buffer: HashMap<H256, Block>,
+    orphan_buffer: &Arc<Mutex<HashMap<H256, Block>>>,
 ) -> Context {
     Context {
         msg_chan: msg_src,
         num_worker,
         server: server.clone(),
         chain: Arc::clone(chain),
-        orphan_buffer: orphan_buffer,
+        orphan_buffer: Arc::clone(orphan_buffer),
     }
 }
 
@@ -96,16 +96,17 @@ impl Context {
                     for block in blocks {
                         let mut hash: H256 = block.hash();
                         if !chain_un.blockmap.contains_key(&hash) {
+                            let mut buffer = self.orphan_buffer.lock().unwrap();
                             if !chain_un.blockmap.contains_key(&block.header.parent) {
-                                self.orphan_buffer.insert(block.header.parent, block);
+                                buffer.insert(block.header.parent, block);
                             } 
                             else if hash <= block.header.difficulty && block.header.difficulty == chain_un.blockmap[&block.header.parent].header.difficulty {
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
                                 self.server.broadcast(Message::NewBlockHashes(vec![hash]));
                                 while true {
-                                    if self.orphan_buffer.contains_key(&hash) {
-                                        let orphan_block = self.orphan_buffer.remove(&hash).unwrap();
+                                    if buffer.contains_key(&hash) {
+                                        let orphan_block = buffer.remove(&hash).unwrap();
                                         chain_un.insert(&orphan_block);
                                         new_blocks.push(orphan_block.hash());
                                         self.server.broadcast(Message::NewBlockHashes(vec![orphan_block.hash()]));

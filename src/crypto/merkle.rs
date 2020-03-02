@@ -8,7 +8,7 @@ pub struct MerkleTree {
     leaf_num: usize,
 }
 
-fn findHeight(in_size: usize) -> u32 {
+fn find_height(in_size: usize) -> u32 {
     let mut height = 0;
     let mut cur = 1;
     while in_size > cur {
@@ -67,7 +67,7 @@ impl MerkleTree {
         if index >= self.leaf_num {
             return proof;
         }
-        let height = findHeight(self.leaf_num);
+        let height = find_height(self.leaf_num);
         let mut cur_index = index;
         let mut sequence = 0;
         for i in 0..height {
