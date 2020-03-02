@@ -20,6 +20,7 @@ use std::process;
 use std::thread;
 use std::time;
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 fn main() {
     // parse command line arguments
@@ -77,12 +78,14 @@ fn main() {
 
     let the_chain = blockchain::Blockchain::new();
     let chain_lock = Arc::new(Mutex::new(the_chain));
+    let buffer = HashMap::new();
 
     let worker_ctx = worker::new(
         p2p_workers,
         msg_rx,
         &server,
         &chain_lock,
+        buffer,
     );
     worker_ctx.start();
 
