@@ -99,7 +99,7 @@ impl Context {
                     for block in blocks {
                         *num_blocks += 1;
                         *delay_sum += SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis() - block.header.timestamp;
-                        println!("{:?} received by the worker. The sum of delay is {:?} milliseconds.", num_blocks, delay_sum);
+                        println!("{:?} received by the worker. The sum of delay is {:?} milliseconds.", *num_blocks, *delay_sum);
                         let mut hash: H256 = block.hash();
                         if !chain_un.blockmap.contains_key(&hash) {
                             let mut buffer = self.orphan_buffer.lock().unwrap();
