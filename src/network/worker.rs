@@ -44,18 +44,18 @@ pub fn new(
 impl Context {
     pub fn start(self) {
         let num_worker = self.num_worker;
+        let mut num_blocks = 0u128;
+        let mut delay_sum = 0u128;
         for i in 0..num_worker {
             let mut cloned = self.clone();
             thread::spawn(move || {
-                cloned.worker_loop();
+                cloned.worker_loop(&mut num_blocks, &mut delay_sum);
                 warn!("Worker thread {} exited", i);
             });
         }
     }
 
-    fn worker_loop(&mut self) {
-        let mut num_blocks = 0;
-        let mut delay_sum = 0;
+    fn worker_loop(&mut self, num_blocks: &mut u128, delay_sum: &mut u128) {
         loop {
             let msg = self.msg_chan.recv().unwrap();
             let (msg, peer) = msg;
@@ -97,9 +97,9 @@ impl Context {
                     let mut chain_un = self.chain.lock().unwrap();
                     let mut new_blocks = Vec::new();
                     for block in blocks {
-                        num_blocks += 1;
-                        delay_sum += SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis() - block.header.timestamp;
-                        println!("{:?} received by the worker. The average block delay is {:?} milliseconds.", num_blocks, delay_sum/num_blocks);
+                        *num_blocks += 1;
+                        *delay_sum += SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis() - block.header.timestamp;
+                        println!("{:?} received by the worker. The sum of delay is {:?} milliseconds.", num_blocks, delay_sum);
                         let mut hash: H256 = block.hash();
                         if !chain_un.blockmap.contains_key(&hash) {
                             let mut buffer = self.orphan_buffer.lock().unwrap();
@@ -110,7 +110,7 @@ impl Context {
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
                                 self.server.broadcast(Message::NewBlockHashes(vec![hash]));
-                                while true {
+                                loop {
                                     if buffer.contains_key(&hash) {
                                         let orphan_block = buffer.remove(&hash).unwrap();
                                         chain_un.insert(&orphan_block);
