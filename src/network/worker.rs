@@ -10,6 +10,7 @@ use crate::crypto::hash::{H256, Hashable};
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // pub struct OrphanBuffer {
 //     parent_map: HashMap<H256, Block>,
@@ -53,6 +54,8 @@ impl Context {
     }
 
     fn worker_loop(&mut self) {
+        let mut num_blocks = 0;
+        let mut delay_sum = 0;
         loop {
             let msg = self.msg_chan.recv().unwrap();
             let (msg, peer) = msg;
@@ -66,7 +69,7 @@ impl Context {
                     debug!("Pong: {}", nonce);
                 }
                 Message::NewBlockHashes(blockhashes) => {
-                    println!("Received NewBlockHashes");
+                    // println!("Received NewBlockHashes");
                     let mut unknown = Vec::new();
                     let chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes.clone() {
@@ -78,7 +81,7 @@ impl Context {
                     peer.write(Message::GetBlocks(unknown));
                 }
                 Message::GetBlocks(blockhashes) => {
-                    println!("Received GetBlocks");
+                    // println!("Received GetBlocks");
                     let mut valid_blocks = Vec::new();
                     let chain_un = self.chain.lock().unwrap();
                     for hash in blockhashes {
@@ -90,10 +93,13 @@ impl Context {
                     peer.write(Message::Blocks(valid_blocks));
                 }
                 Message::Blocks(blocks) => {
-                    println!("Received Blocks");
+                    // println!("Received Blocks");
                     let mut chain_un = self.chain.lock().unwrap();
                     let mut new_blocks = Vec::new();
                     for block in blocks {
+                        num_blocks += 1;
+                        delay_sum += SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis() - block.header.timestamp;
+                        println!("{:?} received by the worker. The average block delay is {:?} milliseconds.", num_blocks, delay_sum/num_blocks);
                         let mut hash: H256 = block.hash();
                         if !chain_un.blockmap.contains_key(&hash) {
                             let mut buffer = self.orphan_buffer.lock().unwrap();
