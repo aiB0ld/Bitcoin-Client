@@ -139,7 +139,7 @@ impl Context {
             let cur_block = Block{ header: header, content: content };
             cnt += 1;
             if cnt % 200000 == 0 {
-                // println!("time: {:?}, tip: {:?}, blocksnum: {:?}", timestamp, chain_un.tip(), chain_un.blockmap.len());
+                println!("time: {:?}, tip: {:?}, blocksnum: {:?}", timestamp, chain_un.tip(), chain_un.blockmap.len());
             }
 
             if cur_block.hash() <= difficulty {
