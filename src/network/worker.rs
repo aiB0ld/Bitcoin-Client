@@ -110,7 +110,7 @@ impl Context {
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
                                 self.server.broadcast(Message::NewBlockHashes(vec![hash]));
-                                while true {
+                                loop {
                                     if buffer.contains_key(&hash) {
                                         let orphan_block = buffer.remove(&hash).unwrap();
                                         chain_un.insert(&orphan_block);
