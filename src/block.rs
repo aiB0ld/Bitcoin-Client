@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use crate::crypto::hash::{H256, Hashable};
-use super::transaction::Transaction;
+use crate::crypto::merkle::MerkleTree;
+use super::transaction::{Transaction, SignedTransaction};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Header {
@@ -20,7 +21,7 @@ impl Hashable for Header {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Content {
-	pub data: Vec<Transaction>,
+	pub data: Vec<SignedTransaction>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

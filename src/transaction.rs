@@ -2,7 +2,49 @@ extern crate rand;
 use serde::{Serialize,Deserialize};
 use ring::digest;
 use ring::signature::{self, Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters};
-use crate::crypto::hash::{H256, Hashable};
+use crate::crypto::hash::{H160, H256, Hashable};
+use std::convert::TryInto;
+use std::collections::{HashSet, HashMap};
+
+pub struct Mempool {
+    pub txmap: HashMap<H256, SignedTransaction>,
+    pub txset: HashSet<H256>,
+}
+
+impl Mempool {
+    pub fn new() -> Self {
+        let mut txmap = HashMap::new();
+        let mut txset = HashSet::new();
+        Mempool { txmap: txmap, txset: txset }
+    }
+
+    pub fn insert(&mut self, transaction: &SignedTransaction) {
+        let tx_hash: H256 = transaction.hash();
+        self.txmap.insert(tx_hash, transaction.clone());
+        self.txset.insert(tx_hash);
+    }
+
+    pub fn remove(&mut self, transaction: &SignedTransaction) {
+        let tx_hash: H256 = transaction.hash();
+        if self.txmap.contains_key(&tx_hash) {
+            self.txmap.remove(&tx_hash);
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct SignedTransaction {
+    pub transaction: Transaction,
+    pub public_key: Vec<u8>,
+    pub signature: Vec<u8>,
+}
+
+impl Hashable for SignedTransaction {
+    fn hash(&self) -> H256 {
+        let m = bincode::serialize(&self).unwrap();
+        digest::digest(&digest::SHA256, m.as_ref()).into()
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Transaction {
@@ -19,20 +61,14 @@ impl Hashable for Transaction {
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct TxIn {
-    pub previous_output: OutPoint,
-    pub script_sig: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct OutPoint {
-    pub txid: String,
+    pub previous_output: H256,
     pub index: u8,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct TxOut {
+    pub recipient: H160,
     pub value: u64,
-    pub script_pubkey: String,
 }
 
 /// Create digital signature of a transaction
@@ -59,41 +95,23 @@ mod tests {
 
     pub fn generate_random_transaction() -> Transaction {
         use rand::Rng;
-        const CHARSET: &[u8] = b"0123456789abcdef";
-        const RIPEMD160_LEN: usize = 40;
-        const SHA256_LEN: usize = 64;
-        const SCRIPTSIG_LEN: usize = 144;
         let mut rng = rand::thread_rng();
 
-        let txid: String = (0..SHA256_LEN)
-            .map(|_| {
-                let idx = rng.gen_range(0, CHARSET.len());
-                CHARSET[idx] as char
-            })
-            .collect();
-        let index: u8 = rng.gen();
-        let out_point = OutPoint { txid: txid, index: index };
-
-        let pub_key: String = (0..RIPEMD160_LEN)
-            .map(|_| {
-                let idx = rng.gen_range(0, CHARSET.len());
-                CHARSET[idx] as char
-            })
-            .collect();
+        let key = key_pair::random();
+        let public_key = key.public_key();
+        let pb_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
+        let recipient: H160 = pb_hash.to_addr().into();
         let value: u64 = rng.gen();
-        let tx_out = TxOut { value: value, script_pubkey: pub_key };
+        let tx_out = TxOut { recipient: recipient, value: value };
 
-        let script_sig: String = (0..SCRIPTSIG_LEN)
-            .map(|_| {
-                let idx = rng.gen_range(0, CHARSET.len());
-                CHARSET[idx] as char
-            })
-            .collect();
-        let tx_in = TxIn { previous_output: out_point, script_sig: script_sig };
+        let rand_num: u8 = rng.gen();
+        let previous_output: H256 = [rand_num; 32].into();
+        let index: u8 = rng.gen();
+        let tx_in = TxIn { previous_output: previous_output, index: index };
 
         let inputs = vec![tx_in];
         let outputs = vec![tx_out];
-        let tx = Transaction{ input: inputs, output: outputs };
+        let tx = Transaction { input: inputs, output: outputs };
         return tx;
     }
 

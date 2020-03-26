@@ -6,15 +6,14 @@ use log::{debug, warn};
 use crate::block::Block;
 use crate::blockchain::Blockchain;
 use crate::crypto::hash::{H256, Hashable};
+use crate::transaction::{Transaction, SignedTransaction, Mempool};
+use ring::digest;
+use ring::signature::{self, Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters};
 
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-// pub struct OrphanBuffer {
-//     parent_map: HashMap<H256, Block>,
-// }
 
 #[derive(Clone)]
 pub struct Context {
@@ -23,6 +22,7 @@ pub struct Context {
     server: ServerHandle,
     chain: Arc<Mutex<Blockchain>>,
     orphan_buffer: Arc<Mutex<HashMap<H256, Block>>>,
+    mempool: Arc<Mutex<Mempool>>,
 }
 
 pub fn new(
@@ -31,6 +31,7 @@ pub fn new(
     server: &ServerHandle,
     chain: &Arc<Mutex<Blockchain>>,
     orphan_buffer: &Arc<Mutex<HashMap<H256, Block>>>,
+    mempool: &Arc<Mutex<Mempool>>,
 ) -> Context {
     Context {
         msg_chan: msg_src,
@@ -38,6 +39,7 @@ pub fn new(
         server: server.clone(),
         chain: Arc::clone(chain),
         orphan_buffer: Arc::clone(orphan_buffer),
+        mempool: Arc::clone(mempool),
     }
 }
 
@@ -75,7 +77,6 @@ impl Context {
                     for hash in blockhashes.clone() {
                         if !chain_un.blockmap.contains_key(&hash) {
                             unknown.push(hash);
-                            // self.server.broadcast(Message::NewBlockHashes(vec![hash]));
                         }
                     }
                     peer.write(Message::GetBlocks(unknown));
@@ -107,12 +108,38 @@ impl Context {
                                 buffer.insert(block.header.parent, block);
                             } 
                             else if hash <= block.header.difficulty && block.header.difficulty == chain_un.blockmap[&block.header.parent].header.difficulty {
+                                let transactions = block.clone().content.data;
+                                let mut valid = true;
+                                for transaction in &transactions {
+                                    let tx = transaction.clone().transaction;
+                                    let pk = transaction.clone().public_key;
+                                    let sig = transaction.clone().signature;
+                                    let m = bincode::serialize(&tx).unwrap();
+                                    let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
+                                    let public_key_ = signature::UnparsedPublicKey::new(&signature::ED25519, pk);
+                                    let verify_res = public_key_.verify(txid.as_ref(), &sig).is_ok();
+                                    if !verify_res {
+                                        valid = false;
+                                        break;
+                                    }
+                                }
+                                if !valid {
+                                    continue
+                                }
+                                let mut mempool_un = self.mempool.lock().unwrap();
+                                for transaction in transactions {
+                                    mempool_un.remove(&transaction);
+                                }
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
                                 self.server.broadcast(Message::NewBlockHashes(vec![hash]));
                                 loop {
                                     if buffer.contains_key(&hash) {
                                         let orphan_block = buffer.remove(&hash).unwrap();
+                                        let transactions = orphan_block.clone().content.data;
+                                        for transaction in transactions {
+                                            mempool_un.remove(&transaction);
+                                        }
                                         chain_un.insert(&orphan_block);
                                         new_blocks.push(orphan_block.hash());
                                         self.server.broadcast(Message::NewBlockHashes(vec![orphan_block.hash()]));
@@ -123,6 +150,47 @@ impl Context {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                Message::NewTransactionHashes(txhashes) => {
+                    println!("Received NewTransactionHashes");
+                    let mut unknown = Vec::new();
+                    let mut mempool_un = self.mempool.lock().unwrap();
+                    for hash in txhashes.clone() {
+                        if !mempool_un.txset.contains(&hash) {
+                            unknown.push(hash);
+                        }
+                    }
+                    peer.write(Message::GetTransactions(unknown));
+                }
+                Message::GetTransactions(txhashes) => {
+                    println!("Received GetTransactions");
+                    let mut valid_txs = Vec::new();
+                    let mut mempool_un = self.mempool.lock().unwrap();
+                    for hash in txhashes {
+                        if mempool_un.txmap.contains_key(&hash) {
+                            let tx = mempool_un.txmap[&hash].clone();
+                            valid_txs.push(tx);
+                        }
+                    }
+                    peer.write(Message::Transactions(valid_txs));
+                }
+                Message::Transactions(transactions) => {
+                    println!("Received Transactions");
+                    let mut mempool_un = self.mempool.lock().unwrap();
+                    for transaction in transactions {
+                        let tx = transaction.clone().transaction;
+                        let pk = transaction.clone().public_key;
+                        let sig = transaction.clone().signature;
+                        let m = bincode::serialize(&tx).unwrap();
+                        let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
+                        let public_key_ = signature::UnparsedPublicKey::new(&signature::ED25519, pk);
+                        let verify_res = public_key_.verify(txid.as_ref(), &sig).is_ok();
+                        let mut hash: H256 = transaction.hash();
+                        if verify_res {
+                            self.server.broadcast(Message::NewTransactionHashes(vec![hash]));
+                            mempool_un.insert(&transaction);
                         }
                     }
                 }

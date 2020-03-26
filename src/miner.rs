@@ -2,6 +2,7 @@ use crate::network::server::Handle as ServerHandle;
 use crate::blockchain::Blockchain;
 use crate::crypto::merkle::MerkleTree;
 use crate::block::{Block, Header, Content};
+use crate::transaction::{Transaction, SignedTransaction, Mempool};
 
 use log::{info, debug};
 
@@ -31,6 +32,7 @@ pub struct Context {
     operating_state: OperatingState,
     server: ServerHandle,
     chain: Arc<Mutex<Blockchain>>,
+    mempool: Arc<Mutex<Mempool>>,
 }
 
 #[derive(Clone)]
@@ -40,7 +42,7 @@ pub struct Handle {
 }
 
 pub fn new(
-    server: &ServerHandle, blockchain: &Arc<Mutex<Blockchain>>,
+    server: &ServerHandle, blockchain: &Arc<Mutex<Blockchain>>, mempool: &Arc<Mutex<Mempool>>,
 ) -> (Context, Handle) {
     let (signal_chan_sender, signal_chan_receiver) = unbounded();
 
@@ -49,6 +51,7 @@ pub fn new(
         operating_state: OperatingState::Paused,
         server: server.clone(),
         chain: Arc::clone(blockchain),
+        mempool: Arc::clone(mempool),
     };
 
     let handle = Handle {
@@ -101,6 +104,7 @@ impl Context {
         let mut cnt = 0;
         let mut total_size = 0;
         let start_time = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
+        let block_limit = 2048;
         loop {
             // check and react to control signals
             match self.operating_state {
@@ -131,7 +135,18 @@ impl Context {
             let parent = chain_un.tip();
             let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
             let difficulty = chain_un.blockmap[&parent].header.difficulty;
-            let transactions = Vec::new();
+            let mut transactions = Vec::new();
+            let mut mempool_un = self.mempool.lock().unwrap();
+            let mut block_size = 0;
+            for key in mempool_un.txmap.keys() {
+                let val = mempool_un.txmap[&key].clone();
+                let m = bincode::serialize(&val).unwrap();
+                if block_size + m.len() > block_limit {
+                    break;
+                }
+                transactions.push(val);
+                block_size += m.len();
+            }
             let empty_tree = MerkleTree::new(&transactions);
             let merkle_root = empty_tree.root();
             let nonce = rng.gen();
@@ -139,11 +154,14 @@ impl Context {
             let content = Content{ data: transactions };
             let cur_block = Block{ header: header, content: content };
             cnt += 1;
-            if cnt % 200000 == 0 {
+            if cnt % 2000 == 0 {
                 println!("time: {:?}, tip: {:?}, blocksnum: {:?}", timestamp, chain_un.tip(), chain_un.blockmap.len());
             }
 
             if cur_block.hash() <= difficulty {
+                for transaction in cur_block.clone().content.data {
+                    mempool_un.remove(&transaction);
+                }
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
                 total_size += bincode::serialize(&cur_block).unwrap().len();

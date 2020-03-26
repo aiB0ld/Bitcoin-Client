@@ -39,13 +39,14 @@ impl MerkleTree {
         let mut cur_len = input_len;
         while cur_len > 1 {
             let half = cur_len/2;
+            // println!("{:?} {:?} {:?} {:?}", start, cur_len, half, tree.len());
             for i in 0..half {
                 let mut ctx = digest::Context::new(&digest::SHA256);
                 ctx.update(tree[start+2*i].as_ref());
                 ctx.update(tree[start+2*i+1].as_ref());
                 tree.push(ctx.finish().into());
             }
-            if data.len() % 2 == 1 {
+            if half % 2 == 1 {
                 tree.push(tree[tree.len()-1]);
             }
             start += cur_len;
