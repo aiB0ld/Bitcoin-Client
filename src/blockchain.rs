@@ -14,15 +14,15 @@ impl Blockchain {
     pub fn new() -> Self {
         let parent: H256 = [0u8; 32].into();
         let nonce = 0u32;
-        // let mut bytes32 = [255u8; 32];
-        // bytes32[0] = 0;
-        // bytes32[1] = 0;
-        let mut bytes32 = [0u8; 32];
-        bytes32[2] = 1;
-        bytes32[3] = 1;
-        bytes32[4] = 1;
-        bytes32[5] = 1;
-        bytes32[6] = 1;
+        let mut bytes32 = [255u8; 32];
+        bytes32[0] = 0;
+        bytes32[1] = 0;
+        // let mut bytes32 = [0u8; 32];
+        // bytes32[2] = 1;
+        // bytes32[3] = 1;
+        // bytes32[4] = 1;
+        // bytes32[5] = 1;
+        // bytes32[6] = 1;
         let difficulty: H256 = bytes32.into();
         let timestamp = 0u128;
         let transactions = Vec::new();

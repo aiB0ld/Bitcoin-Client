@@ -154,7 +154,7 @@ impl Context {
             let content = Content{ data: transactions };
             let cur_block = Block{ header: header, content: content };
             cnt += 1;
-            if cnt % 2000 == 0 {
+            if cnt % 20000 == 0 {
                 println!("time: {:?}, tip: {:?}, blocksnum: {:?}", timestamp, chain_un.tip(), chain_un.blockmap.len());
             }
 
