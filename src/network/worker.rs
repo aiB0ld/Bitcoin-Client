@@ -154,7 +154,7 @@ impl Context {
                     }
                 }
                 Message::NewTransactionHashes(txhashes) => {
-                    println!("Received NewTransactionHashes");
+                    // println!("Received NewTransactionHashes");
                     let mut unknown = Vec::new();
                     let mut mempool_un = self.mempool.lock().unwrap();
                     for hash in txhashes.clone() {
@@ -165,7 +165,7 @@ impl Context {
                     peer.write(Message::GetTransactions(unknown));
                 }
                 Message::GetTransactions(txhashes) => {
-                    println!("Received GetTransactions");
+                    // println!("Received GetTransactions");
                     let mut valid_txs = Vec::new();
                     let mut mempool_un = self.mempool.lock().unwrap();
                     for hash in txhashes {
@@ -177,7 +177,7 @@ impl Context {
                     peer.write(Message::Transactions(valid_txs));
                 }
                 Message::Transactions(transactions) => {
-                    println!("Received Transactions");
+                    // println!("Received Transactions");
                     let mut mempool_un = self.mempool.lock().unwrap();
                     for transaction in transactions {
                         let tx = transaction.clone().transaction;
