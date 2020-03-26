@@ -124,6 +124,7 @@ impl Context {
                                     }
                                 }
                                 if !valid {
+                                    println!("Invalid block received. Transaction is not signed properly!");
                                     continue
                                 }
                                 let mut mempool_un = self.mempool.lock().unwrap();
