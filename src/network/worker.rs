@@ -185,7 +185,7 @@ impl Context {
                                 for transaction in transactions {
                                     mempool_un.remove(&transaction);
                                     state_un.update(&transaction);
-                                    println!("{:?}", mempool_un.len());
+                                    println!("{:?}", mempool_un.txmap.len());
                                 }
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
@@ -300,7 +300,7 @@ impl Context {
                         if verify_res {
                             self.server.broadcast(Message::NewTransactionHashes(vec![hash]));
                             mempool_un.insert(&transaction);
-                            println!("{:?}", mempool_un.len());
+                            println!("{:?}", mempool_un.txmap.len());
                         }
                         else {
                             println!("Invalid transaction received! Not adding to the mempool.");

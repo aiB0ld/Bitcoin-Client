@@ -165,7 +165,7 @@ impl Context {
                 for transaction in cur_block.clone().content.data {
                     mempool_un.remove(&transaction);
                     state_un.update(&transaction);
-                    println!("{:?}", mempool_un.len());
+                    println!("{:?}", mempool_un.txmap.len());
                 }
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
