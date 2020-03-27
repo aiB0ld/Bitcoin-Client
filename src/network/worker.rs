@@ -99,7 +99,6 @@ impl Context {
                 Message::Blocks(blocks) => {
                     println!("Received Blocks");
                     let mut chain_un = self.chain.lock().unwrap();
-                    let mut state_un = self.state.lock().unwrap();
                     let mut new_blocks = Vec::new();
                     for block in blocks {
                         num_blocks += 1;
@@ -182,6 +181,7 @@ impl Context {
                                     continue
                                 }
                                 let mut mempool_un = self.mempool.lock().unwrap();
+                                let mut state_un = self.state.lock().unwrap();
                                 println!("I'm out!");
                                 for transaction in transactions {
                                     mempool_un.remove(&transaction);
