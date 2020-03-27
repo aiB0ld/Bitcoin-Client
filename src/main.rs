@@ -102,7 +102,7 @@ fn main() {
     let mempool_lock_ = mempool_lock.clone();
     thread::spawn(move || {
         loop {
-            thread::sleep(time::Duration::from_millis(2000));
+            thread::sleep(time::Duration::from_millis(10000));
             use rand::Rng;
             let mut rng = rand::thread_rng();
 
