@@ -160,9 +160,9 @@ impl Context {
                 println!("time: {:?}, tip: {:?}, blocksnum: {:?}", timestamp, chain_un.tip(), chain_un.blockmap.len());
             }
 
-            let mut state_un = self.state.lock().unwrap();
             if cur_block.hash() <= difficulty {
                 for transaction in cur_block.clone().content.data {
+                    let mut state_un = self.state.lock().unwrap();
                     mempool_un.remove(&transaction);
                     state_un.update(&transaction);
                     println!("{:?}", mempool_un.txmap.len());
