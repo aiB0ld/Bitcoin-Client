@@ -105,9 +105,29 @@ fn main() {
     let mempool_lock_ = mempool_lock.clone();
     thread::spawn(move || {
         loop {
+            // use rand::Rng;
+            // let mut rng = rand::thread_rng();
+            // use crate::crypto::key_pair;
+
             thread::sleep(time::Duration::from_millis(10000));
-            use rand::Rng;
-            let mut rng = rand::thread_rng();
+            // let mut map_key = 0;
+            // let mut map_val = 0;
+            // for key in state_lock.utxo.keys() {
+            //     map_key = key.clone();
+            //     val = state_lock.utxo[&key].clone();
+            //     break;
+            // }
+
+            // let key = key_pair::random();
+            // let public_key = key.public_key();
+            // let pk_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
+            // let recipient: H160 = pk_hash.to_addr().into();
+            // let value: u64 = map_val.0;
+            // let tx_out = TxOut { recipient: recipient, value: value };
+
+            // let previous_output: H256 = map_key.0;
+            // let index: u8 = map_key.1;
+            // let tx_in = TxIn { previous_output: previous_output, index: index };
 
             let seed = [255u8; 32];
             let key = Ed25519KeyPair::from_seed_unchecked(&seed).unwrap();
