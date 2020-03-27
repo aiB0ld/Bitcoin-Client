@@ -19,8 +19,7 @@ impl Blockchain {
         // bytes32[1] = 0;
         let mut bytes32 = [0u8; 32];
         bytes32[2] = 255u8;
-        bytes32[3] = 255u8;
-        bytes32[4] = 255u8;
+        // bytes32[3] = 255u8;
         let difficulty: H256 = bytes32.into();
         let timestamp = 0u128;
         let transactions = Vec::new();
