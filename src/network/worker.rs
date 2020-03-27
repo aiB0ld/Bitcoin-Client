@@ -249,13 +249,13 @@ impl Context {
                                 let recipient: H160 = pb_hash.to_addr().into();
                                 if recipient != true_recipient {
                                     verify_res = false;
-                                    println!("fail signature check step 1");
+                                    println!("fail signature check step 2: inconsistent recipient");
                                     break;
                                 }
                             }
                             else {
                                 verify_res = false;
-                                println!("fail signature check step 1");
+                                println!("fail signature check step 2: not exist");
                                 break;
                             }
                         }

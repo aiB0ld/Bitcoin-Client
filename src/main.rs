@@ -109,23 +109,23 @@ fn main() {
             use rand::Rng;
             let mut rng = rand::thread_rng();
 
-            use crate::crypto::key_pair;
-            let key = key_pair::random();
+            let seed = [255u8; 32];
+            let key = Ed25519KeyPair::from_seed_unchecked(&seed).unwrap();
             let public_key = key.public_key();
             let pb_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
             let recipient: H160 = pb_hash.to_addr().into();
-            let value: u64 = rng.gen();
+            let value: u64 = 10000;
             let tx_out = TxOut { recipient: recipient, value: value };
 
-            let rand_num: u8 = rng.gen();
-            let previous_output: H256 = [rand_num; 32].into();
-            let index: u8 = rng.gen();
+            let previous_output: H256 = [0u8; 32].into();
+            let index: u8 = 0;
             let tx_in = TxIn { previous_output: previous_output, index: index };
 
             let inputs = vec![tx_in];
             let outputs = vec![tx_out];
             let tx = Transaction { input: inputs, output: outputs };
-            let key_sender = key_pair::random();
+            let seed_sender = [0u8; 32];
+            let key_sender = Ed25519KeyPair::from_seed_unchecked(&seed_sender).unwrap();
             let pk_sender = key_sender.public_key();
             let m = bincode::serialize(&tx).unwrap();
             let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
