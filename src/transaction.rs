@@ -61,6 +61,9 @@ impl Mempool {
 
     pub fn insert(&mut self, transaction: &SignedTransaction) {
         let tx_hash: H256 = transaction.hash();
+        if self.txset.contains(&tx_hash) {
+            return;
+        }
         self.txmap.insert(tx_hash, transaction.clone());
         self.txset.insert(tx_hash);
     }
