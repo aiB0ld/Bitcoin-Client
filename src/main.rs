@@ -126,7 +126,7 @@ fn main() {
             let pk_sender = key_sender.public_key();
             let m = bincode::serialize(&tx).unwrap();
             let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
-            let sig = key.sign(txid.as_ref());
+            let sig = key_sender.sign(txid.as_ref());
             let signed_tx = SignedTransaction { transaction: tx, public_key: pk_sender.as_ref().to_vec(), signature: sig.as_ref().to_vec() };
 
             let mut mempool_un = mempool_lock_.lock().unwrap();
