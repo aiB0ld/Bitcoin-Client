@@ -134,10 +134,8 @@ fn main() {
 
             let mut mempool_un = mempool_lock_.lock().unwrap();
             mempool_un.insert(&signed_tx);
-            println!("{:?}", mempool_un.txmap.len());
             let mut hash: H256 = signed_tx.hash();
             server_.broadcast(Message::NewTransactionHashes(vec![hash]));
-            // println!("A new transaction is generated: {:?}", signed_tx.hash());
         }
     });
 

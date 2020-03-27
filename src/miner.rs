@@ -165,7 +165,6 @@ impl Context {
                     let mut state_un = self.state.lock().unwrap();
                     mempool_un.remove(&transaction);
                     state_un.update(&transaction);
-                    println!("{:?}", mempool_un.txmap.len());
                 }
                 chain_un.insert(&cur_block);
                 num_blocks += 1;
