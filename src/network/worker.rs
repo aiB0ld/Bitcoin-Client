@@ -217,7 +217,7 @@ impl Context {
                     let mut unknown = Vec::new();
                     let mut mempool_un = self.mempool.lock().unwrap();
                     for hash in txhashes.clone() {
-                        if !mempool_un.txmap.contains_key(&hash) {
+                        if !mempool_un.txset.contains(&hash) {
                             unknown.push(hash);
                         }
                     }

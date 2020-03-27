@@ -49,17 +49,20 @@ impl State {
 
 pub struct Mempool {
     pub txmap: HashMap<H256, SignedTransaction>,
+    pub txset: HashSet<H256>,
 }
 
 impl Mempool {
     pub fn new() -> Self {
         let mut txmap = HashMap::new();
-        Mempool { txmap: txmap }
+        let mut txset = HashSet::new();
+        Mempool { txmap: txmap, txset: txset }
     }
 
     pub fn insert(&mut self, transaction: &SignedTransaction) {
         let tx_hash: H256 = transaction.hash();
         self.txmap.insert(tx_hash, transaction.clone());
+        self.txset.insert(tx_hash);
     }
 
     pub fn remove(&mut self, transaction: &SignedTransaction) {
