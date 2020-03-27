@@ -112,8 +112,8 @@ fn main() {
             let seed = [255u8; 32];
             let key = Ed25519KeyPair::from_seed_unchecked(&seed).unwrap();
             let public_key = key.public_key();
-            let pb_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
-            let recipient: H160 = pb_hash.to_addr().into();
+            let pk_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
+            let recipient: H160 = pk_hash.to_addr().into();
             let value: u64 = 10000;
             let tx_out = TxOut { recipient: recipient, value: value };
 
@@ -135,6 +135,9 @@ fn main() {
             let mut mempool_un = mempool_lock_.lock().unwrap();
             mempool_un.insert(&signed_tx);
             let mut hash: H256 = signed_tx.hash();
+            let pk_sender_hash: H256 = digest::digest(&digest::SHA256, pk_sender.as_ref()).into();
+            let sender: H160 = pk_sender_hash.to_addr().into();
+            println!("New transaction generated. Sending from {:?} to {:?}.", sender, recipient);
             server_.broadcast(Message::NewTransactionHashes(vec![hash]));
         }
     });
