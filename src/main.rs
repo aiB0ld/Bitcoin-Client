@@ -25,7 +25,7 @@ use ring::digest;
 use ring::signature::{self, Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters};
 use crypto::hash::{H160, H256, Hashable};
 use network::message::Message;
-use transaction::{TxIn, TxOut, Transaction, SignedTransaction};
+use transaction::{TxIn, TxOut, Transaction, SignedTransaction, State};
 
 fn main() {
     // parse command line arguments
@@ -87,6 +87,8 @@ fn main() {
     let buffer_lock = Arc::new(Mutex::new(buffer));
     let the_mempool = transaction::Mempool::new();
     let mempool_lock = Arc::new(Mutex::new(the_mempool));
+    let the_state = State::new();
+    let state_lock = Arc::new(Mutex::new(the_state));
 
     let worker_ctx = worker::new(
         p2p_workers,
@@ -95,53 +97,55 @@ fn main() {
         &chain_lock,
         &buffer_lock,
         &mempool_lock,
+        &state_lock,
     );
     worker_ctx.start();
 
-    let server_ = server.clone();
-    let mempool_lock_ = mempool_lock.clone();
-    thread::spawn(move || {
-        loop {
-            thread::sleep(time::Duration::from_millis(10000));
-            use rand::Rng;
-            let mut rng = rand::thread_rng();
+    // let server_ = server.clone();
+    // let mempool_lock_ = mempool_lock.clone();
+    // thread::spawn(move || {
+    //     loop {
+    //         thread::sleep(time::Duration::from_millis(10000));
+    //         use rand::Rng;
+    //         let mut rng = rand::thread_rng();
 
-            use crate::crypto::key_pair;
-            let key = key_pair::random();
-            let public_key = key.public_key();
-            let pb_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
-            let recipient: H160 = pb_hash.to_addr().into();
-            let value: u64 = rng.gen();
-            let tx_out = TxOut { recipient: recipient, value: value };
+    //         use crate::crypto::key_pair;
+    //         let key = key_pair::random();
+    //         let public_key = key.public_key();
+    //         let pb_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
+    //         let recipient: H160 = pb_hash.to_addr().into();
+    //         let value: u64 = rng.gen();
+    //         let tx_out = TxOut { recipient: recipient, value: value };
 
-            let rand_num: u8 = rng.gen();
-            let previous_output: H256 = [rand_num; 32].into();
-            let index: u8 = rng.gen();
-            let tx_in = TxIn { previous_output: previous_output, index: index };
+    //         let rand_num: u8 = rng.gen();
+    //         let previous_output: H256 = [rand_num; 32].into();
+    //         let index: u8 = rng.gen();
+    //         let tx_in = TxIn { previous_output: previous_output, index: index };
 
-            let inputs = vec![tx_in];
-            let outputs = vec![tx_out];
-            let tx = Transaction { input: inputs, output: outputs };
-            let key_sender = key_pair::random();
-            let pk_sender = key_sender.public_key();
-            let m = bincode::serialize(&tx).unwrap();
-            let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
-            let sig = key_sender.sign(txid.as_ref());
-            let signed_tx = SignedTransaction { transaction: tx, public_key: pk_sender.as_ref().to_vec(), signature: sig.as_ref().to_vec() };
+    //         let inputs = vec![tx_in];
+    //         let outputs = vec![tx_out];
+    //         let tx = Transaction { input: inputs, output: outputs };
+    //         let key_sender = key_pair::random();
+    //         let pk_sender = key_sender.public_key();
+    //         let m = bincode::serialize(&tx).unwrap();
+    //         let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
+    //         let sig = key_sender.sign(txid.as_ref());
+    //         let signed_tx = SignedTransaction { transaction: tx, public_key: pk_sender.as_ref().to_vec(), signature: sig.as_ref().to_vec() };
 
-            let mut mempool_un = mempool_lock_.lock().unwrap();
-            mempool_un.insert(&signed_tx);
-            let mut hash: H256 = signed_tx.hash();
-            server_.broadcast(Message::NewTransactionHashes(vec![hash]));
-            // println!("A new transaction is generated: {:?}", signed_tx.hash());
-        }
-    });
+    //         let mut mempool_un = mempool_lock_.lock().unwrap();
+    //         mempool_un.insert(&signed_tx);
+    //         let mut hash: H256 = signed_tx.hash();
+    //         server_.broadcast(Message::NewTransactionHashes(vec![hash]));
+    //         // println!("A new transaction is generated: {:?}", signed_tx.hash());
+    //     }
+    // });
 
     // start the miner
     let (miner_ctx, miner) = miner::new(
         &server,
         &chain_lock,
         &mempool_lock,
+        &state_lock,
     );
     miner_ctx.start();
 

@@ -7,7 +7,44 @@ use std::convert::TryInto;
 use std::collections::{HashSet, HashMap};
 
 pub struct State {
-    
+    pub utxo: HashMap<(H256, u8), (u64, H160)>,
+}
+
+impl State {
+    pub fn new() -> Self {
+        use crate::crypto::key_pair;
+        let mut utxo = HashMap::new();
+        let bytes32 = [0u8; 32];
+        let tx_hash: H256 = bytes32.into();
+        let output_idx: u8 = 0;
+        let value: u64 = 10000;
+        let seed = [0u8; 32];
+        let key = Ed25519KeyPair::from_seed_unchecked(&seed).unwrap();
+        let public_key = key.public_key();
+        let pb_hash: H256 = digest::digest(&digest::SHA256, public_key.as_ref()).into();
+        let recipient: H160 = pb_hash.to_addr().into();
+        let init_key = (tx_hash, output_idx);
+        let init_val = (value, recipient);
+        utxo.insert(init_key, init_val);
+        println!("ICO completed. {:?} coins are granted to {:?}", value, recipient);
+        State { utxo: utxo }
+    }
+
+    pub fn update(&mut self, transaction: &SignedTransaction) {
+        let tx = transaction.transaction.clone();
+        let input = tx.input;
+        let output = tx.output;
+        for txin in input {
+            let key = (txin.previous_output, txin.index);
+            self.utxo.remove(&key);
+        }
+        let mut idx = 0;
+        for txout in output {
+            let tx_hash = transaction.hash();
+            self.utxo.insert((tx_hash, idx), (txout.value, txout.recipient));
+            idx += 1;
+        }
+    }
 }
 
 pub struct Mempool {

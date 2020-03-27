@@ -2,7 +2,7 @@ use crate::network::server::Handle as ServerHandle;
 use crate::blockchain::Blockchain;
 use crate::crypto::merkle::MerkleTree;
 use crate::block::{Block, Header, Content};
-use crate::transaction::{Transaction, SignedTransaction, Mempool};
+use crate::transaction::{Transaction, SignedTransaction, Mempool, State};
 
 use log::{info, debug};
 
@@ -33,6 +33,7 @@ pub struct Context {
     server: ServerHandle,
     chain: Arc<Mutex<Blockchain>>,
     mempool: Arc<Mutex<Mempool>>,
+    state: Arc<Mutex<State>>,
 }
 
 #[derive(Clone)]
@@ -42,7 +43,7 @@ pub struct Handle {
 }
 
 pub fn new(
-    server: &ServerHandle, blockchain: &Arc<Mutex<Blockchain>>, mempool: &Arc<Mutex<Mempool>>,
+    server: &ServerHandle, blockchain: &Arc<Mutex<Blockchain>>, mempool: &Arc<Mutex<Mempool>>, state: &Arc<Mutex<State>>,
 ) -> (Context, Handle) {
     let (signal_chan_sender, signal_chan_receiver) = unbounded();
 
@@ -52,6 +53,7 @@ pub fn new(
         server: server.clone(),
         chain: Arc::clone(blockchain),
         mempool: Arc::clone(mempool),
+        state: Arc::clone(state),
     };
 
     let handle = Handle {
@@ -158,9 +160,11 @@ impl Context {
                 println!("time: {:?}, tip: {:?}, blocksnum: {:?}", timestamp, chain_un.tip(), chain_un.blockmap.len());
             }
 
+            let mut state_un = self.state.lock().unwrap();
             if cur_block.hash() <= difficulty {
                 for transaction in cur_block.clone().content.data {
                     mempool_un.remove(&transaction);
+                    state_un.update(&transaction);
                 }
                 chain_un.insert(&cur_block);
                 num_blocks += 1;

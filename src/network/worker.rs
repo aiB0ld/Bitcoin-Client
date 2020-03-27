@@ -5,8 +5,8 @@ use crossbeam::channel;
 use log::{debug, warn};
 use crate::block::Block;
 use crate::blockchain::Blockchain;
-use crate::crypto::hash::{H256, Hashable};
-use crate::transaction::{Transaction, SignedTransaction, Mempool};
+use crate::crypto::hash::{H160, H256, Hashable};
+use crate::transaction::{Transaction, SignedTransaction, Mempool, State};
 use ring::digest;
 use ring::signature::{self, Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters};
 
@@ -23,6 +23,7 @@ pub struct Context {
     chain: Arc<Mutex<Blockchain>>,
     orphan_buffer: Arc<Mutex<HashMap<H256, Block>>>,
     mempool: Arc<Mutex<Mempool>>,
+    state: Arc<Mutex<State>>,
 }
 
 pub fn new(
@@ -32,6 +33,7 @@ pub fn new(
     chain: &Arc<Mutex<Blockchain>>,
     orphan_buffer: &Arc<Mutex<HashMap<H256, Block>>>,
     mempool: &Arc<Mutex<Mempool>>,
+    state: &Arc<Mutex<State>>,
 ) -> Context {
     Context {
         msg_chan: msg_src,
@@ -40,6 +42,7 @@ pub fn new(
         chain: Arc::clone(chain),
         orphan_buffer: Arc::clone(orphan_buffer),
         mempool: Arc::clone(mempool),
+        state: Arc::clone(state),
     }
 }
 
@@ -110,14 +113,47 @@ impl Context {
                             else if hash <= block.header.difficulty && block.header.difficulty == chain_un.blockmap[&block.header.parent].header.difficulty {
                                 let transactions = block.clone().content.data;
                                 let mut valid = true;
+                                let mut state_un = self.state.lock().unwrap();
                                 for transaction in &transactions {
+                                    // Signature Check Step 1
                                     let tx = transaction.clone().transaction;
                                     let pk = transaction.clone().public_key;
                                     let sig = transaction.clone().signature;
                                     let m = bincode::serialize(&tx).unwrap();
                                     let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
-                                    let public_key_ = signature::UnparsedPublicKey::new(&signature::ED25519, pk);
-                                    let verify_res = public_key_.verify(txid.as_ref(), &sig).is_ok();
+                                    let public_key_ = signature::UnparsedPublicKey::new(&signature::ED25519, pk.clone());
+                                    let mut verify_res = public_key_.verify(txid.as_ref(), &sig).is_ok();
+                                    // Signature Check Step 2
+                                    let input = tx.input;
+                                    let mut input_amount = 0;
+                                    for txin in input {
+                                        let prev_out = txin.previous_output;
+                                        let idx = txin.index;
+                                        if state_un.utxo.contains_key(&(prev_out, idx)) {
+                                            let val = state_un.utxo[&(prev_out, idx)];
+                                            input_amount += val.0;
+                                            let true_recipient = val.1;
+                                            let pb_hash: H256 = digest::digest(&digest::SHA256, &pk).into();
+                                            let recipient: H160 = pb_hash.to_addr().into();
+                                            if recipient != true_recipient {
+                                                verify_res = false;
+                                                break;
+                                            }
+                                        }
+                                        else {
+                                            verify_res = false;
+                                            break;
+                                        }
+                                    }
+                                    // Spending Check
+                                    let output = tx.output;
+                                    let mut output_amount = 0;
+                                    for txout in output {
+                                        output_amount += txout.value;
+                                    }
+                                    if input_amount < output_amount {
+                                        verify_res = false;
+                                    }
                                     if !verify_res {
                                         valid = false;
                                         break;
@@ -128,8 +164,10 @@ impl Context {
                                     continue
                                 }
                                 let mut mempool_un = self.mempool.lock().unwrap();
+                                let mut state_un = self.state.lock().unwrap();
                                 for transaction in transactions {
                                     mempool_un.remove(&transaction);
+                                    state_un.update(&transaction);
                                 }
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
@@ -140,6 +178,7 @@ impl Context {
                                         let transactions = orphan_block.clone().content.data;
                                         for transaction in transactions {
                                             mempool_un.remove(&transaction);
+                                            state_un.update(&transaction);
                                         }
                                         chain_un.insert(&orphan_block);
                                         new_blocks.push(orphan_block.hash());
@@ -180,18 +219,55 @@ impl Context {
                 Message::Transactions(transactions) => {
                     // println!("Received Transactions");
                     let mut mempool_un = self.mempool.lock().unwrap();
+                    let mut state_un = self.state.lock().unwrap();
                     for transaction in transactions {
+                        // Signature Check Step 1
                         let tx = transaction.clone().transaction;
                         let pk = transaction.clone().public_key;
                         let sig = transaction.clone().signature;
                         let m = bincode::serialize(&tx).unwrap();
                         let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
-                        let public_key_ = signature::UnparsedPublicKey::new(&signature::ED25519, pk);
-                        let verify_res = public_key_.verify(txid.as_ref(), &sig).is_ok();
+                        let public_key_ = signature::UnparsedPublicKey::new(&signature::ED25519, pk.clone());
+                        let mut verify_res = public_key_.verify(txid.as_ref(), &sig).is_ok();
+                        // Signature Check Step 2
+                        let input = tx.input;
+                        let mut input_amount = 0;
+                        for txin in input {
+                            let prev_out = txin.previous_output;
+                            let idx = txin.index;
+                            if state_un.utxo.contains_key(&(prev_out, idx)) {
+                                let val = state_un.utxo[&(prev_out, idx)];
+                                input_amount += val.0;
+                                let true_recipient = val.1;
+                                let pb_hash: H256 = digest::digest(&digest::SHA256, &pk).into();
+                                let recipient: H160 = pb_hash.to_addr().into();
+                                if recipient != true_recipient {
+                                    verify_res = false;
+                                    break;
+                                }
+                            }
+                            else {
+                                verify_res = false;
+                                break;
+                            }
+                        }
+                        // Spending Check
+                        let output = tx.output;
+                        let mut output_amount = 0;
+                        for txout in output {
+                            output_amount += txout.value;
+                        }
+                        if input_amount < output_amount {
+                            verify_res = false;
+                        }
+
                         let mut hash: H256 = transaction.hash();
                         if verify_res {
                             self.server.broadcast(Message::NewTransactionHashes(vec![hash]));
                             mempool_un.insert(&transaction);
+                        }
+                        else {
+                            println!("Invalid transaction received! Not adding to the mempool.");
                         }
                     }
                 }
