@@ -153,6 +153,9 @@ impl Context {
                                             break;
                                         }
                                     }
+                                    if verify_res {
+                                        println!("pass signature check step 2");
+                                    }
                                     // Spending Check
                                     let output = tx.output;
                                     let mut output_amount = 0;
@@ -182,6 +185,7 @@ impl Context {
                                 for transaction in transactions {
                                     mempool_un.remove(&transaction);
                                     state_un.update(&transaction);
+                                    println!("{:?}", mempool_un.len());
                                 }
                                 chain_un.insert(&block);
                                 new_blocks.push(hash);
@@ -212,7 +216,7 @@ impl Context {
                     let mut unknown = Vec::new();
                     let mut mempool_un = self.mempool.lock().unwrap();
                     for hash in txhashes.clone() {
-                        if !mempool_un.txset.contains(&hash) {
+                        if !mempool_un.txmap.contains_key(&hash) {
                             unknown.push(hash);
                         }
                     }
@@ -296,6 +300,7 @@ impl Context {
                         if verify_res {
                             self.server.broadcast(Message::NewTransactionHashes(vec![hash]));
                             mempool_un.insert(&transaction);
+                            println!("{:?}", mempool_un.len());
                         }
                         else {
                             println!("Invalid transaction received! Not adding to the mempool.");
