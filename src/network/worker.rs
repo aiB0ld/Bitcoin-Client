@@ -236,7 +236,7 @@ impl Context {
                     peer.write(Message::Transactions(valid_txs));
                 }
                 Message::Transactions(transactions) => {
-                    // println!("Received Transactions");
+                    println!("Received Transactions");
                     let mut mempool_un = self.mempool.lock().unwrap();
                     let mut state_un = self.state.lock().unwrap();
                     for transaction in transactions {
