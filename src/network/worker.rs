@@ -176,13 +176,13 @@ impl Context {
                                         break;
                                     }
                                 }
-                                println!("I'm out!");
                                 if !valid {
                                     println!("Invalid block received. Transaction is not signed properly!");
                                     continue
                                 }
                                 let mut mempool_un = self.mempool.lock().unwrap();
                                 let mut state_un = self.state.lock().unwrap();
+                                println!("I'm out!");
                                 for transaction in transactions {
                                     mempool_un.remove(&transaction);
                                     state_un.update(&transaction);
