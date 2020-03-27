@@ -123,6 +123,12 @@ impl Context {
                                     let txid = digest::digest(&digest::SHA256, digest::digest(&digest::SHA256, m.as_ref()).as_ref());
                                     let public_key_ = signature::UnparsedPublicKey::new(&signature::ED25519, pk.clone());
                                     let mut verify_res = public_key_.verify(txid.as_ref(), &sig).is_ok();
+                                    if verify_res {
+                                        println!("pass signature check step 1");
+                                    }
+                                    else {
+                                        println!("fail signature check step 1");
+                                    }
                                     // Signature Check Step 2
                                     let input = tx.input;
                                     let mut input_amount = 0;
@@ -136,11 +142,13 @@ impl Context {
                                             let pb_hash: H256 = digest::digest(&digest::SHA256, &pk).into();
                                             let recipient: H160 = pb_hash.to_addr().into();
                                             if recipient != true_recipient {
+                                                println!("fail signature check step 2: inconsistent recipient");
                                                 verify_res = false;
                                                 break;
                                             }
                                         }
                                         else {
+                                            println!("fail signature check step 2: not exist");
                                             verify_res = false;
                                             break;
                                         }
@@ -153,6 +161,12 @@ impl Context {
                                     }
                                     if input_amount < output_amount {
                                         verify_res = false;
+                                    }
+                                    if verify_res {
+                                        println!("pass spending check");
+                                    }
+                                    else {
+                                        println!("fail spending check");
                                     }
                                     if !verify_res {
                                         valid = false;
