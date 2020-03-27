@@ -176,6 +176,7 @@ impl Context {
                                         break;
                                     }
                                 }
+                                println!("I'm out!");
                                 if !valid {
                                     println!("Invalid block received. Transaction is not signed properly!");
                                     continue
