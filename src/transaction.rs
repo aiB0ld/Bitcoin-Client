@@ -33,7 +33,7 @@ impl State {
     pub fn update(&mut self, transaction: &SignedTransaction) {
         println!("Before state update");
         for (key, val) in self.utxo.iter() {
-            println!("key: {}, val: {}", key, val);
+            println!("key: {:?}, val: {:?}", key, val);
         }
         let tx = transaction.transaction.clone();
         let input = tx.input;
@@ -50,7 +50,7 @@ impl State {
         }
         println!("After state update");
         for (key, val) in self.utxo.iter() {
-            println!("key: {}, val: {}", key, val);
+            println!("key: {:?}, val: {:?}", key, val);
         }
 
     }
