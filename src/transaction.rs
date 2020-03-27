@@ -6,6 +6,10 @@ use crate::crypto::hash::{H160, H256, Hashable};
 use std::convert::TryInto;
 use std::collections::{HashSet, HashMap};
 
+pub struct State {
+    
+}
+
 pub struct Mempool {
     pub txmap: HashMap<H256, SignedTransaction>,
     pub txset: HashSet<H256>,
